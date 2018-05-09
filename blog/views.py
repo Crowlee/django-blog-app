@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 
 from blog.modelforms import PostModelForm, PostForm
-from .models import  Post
+from blog.models import Post
 
 # Create your views here.
 
@@ -46,9 +46,14 @@ def post_new_form(request):
         form = PostForm(request.POST)
         print(form)
         if form.is_valid():
-            print(form.cleaned_data)
-            post = Post(author = request.user, title = form.title, text = form.text, published_data = timezone.now())
+            post = Post()
+            post.author = request.user
+            post.title = form.cleaned_data["title"]
+            post.text = form.cleaned_data["text"]
+            post.published_date = timezone.now()
             post.save()
+            # post = Post.objects.create(author = request.user, title = form.cleaned_data["title"], text = form.cleaned_data["text"],published_date = timezone.now())
+
             return redirect('post_detail', pk=post.pk)
         else:
             print(form.errors)
@@ -56,4 +61,18 @@ def post_new_form(request):
         form = PostForm()
     return  render(request, 'blog/post_form.html',{'form':form})
 
+#글 수정//modelform 사용
+def post_edit(request,pk):
+    post = get_object_or_404(Post,pk=pk)
+    if request.method == 'POST':
+        form = PostModelForm(request.POST, instance=post)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.published_date = timezone.now()
+            post.save()
+            return redirect('post_detail',pk=post.pk)
+    else:
+        form = PostModelForm(instance=post)
 
+    return render(request, 'blog/post_edit.html',{'form':form})
